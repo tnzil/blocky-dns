@@ -285,12 +285,38 @@ upstream:
     - 1.1.1.1
     - 8.8.8.8
 blocking:
-  blackLists:
+  denylists:
     ads:
+      # General ad/tracker
       - https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
       - https://raw.githubusercontent.com/m0zgen/dns-hole/master/dns-blacklist.txt
       - https://raw.githubusercontent.com/m0zgen/dns-hole/master/malisious.txt
-  whiteLists:
+      - https://o0.pages.dev/Lite/domains.txt
+      - https://raw.githubusercontent.com/Perflyst/PiHoleBlocklist/master/SmartTV.txt
+      - https://adaway.org/hosts.txt
+
+      # Hardcore/Hagezi
+      - https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/pro.txt
+
+      # Comprehensive
+      - https://raw.githubusercontent.com/AdguardTeam/AdguardFilters/master/SpywareFilter/sections/tracking_servers_firstparty.txt
+
+      # Restrictive (wildcard)
+      - https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/multi.txt
+
+      # Easylist
+      - https://easylist.to/easylist/easylist.txt
+      - https://easylist.to/easylist/easyprivacy.txt
+
+      # OISD (working version)
+      - https://dblw.oisd.nl/big/
+
+      # Hagezi variants
+      - https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/light.txt
+      - https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/pro.plus.txt
+      - https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/ultimate.txt
+
+  allowlists:
     ads:
       - https://raw.githubusercontent.com/m0zgen/dns-hole/master/whitelist.txt
       - https://raw.githubusercontent.com/m0zgen/dns-hole/master/vendors-wl/microsoft.txt
