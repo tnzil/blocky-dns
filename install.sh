@@ -309,7 +309,10 @@ blocking:
       - https://easylist.to/easylist/easyprivacy.txt
 
       # OISD (working version)
-      - https://dblw.oisd.nl/big/
+      - https://big.oisd.nl
+      - https://small.oisd.nl
+      - https://nsfw.oisd.nl
+      - https://nsfw-small.oisd.nl
 
       # Hagezi variants
       - https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/light.txt
