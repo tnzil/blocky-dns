@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block title %}Logs - Blocky DNS Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1><i class="fas fa-file-alt"></i> Blocky DNS Logs</h1>
+        <p class="lead">View and monitor Blocky service logs</p>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-terminal"></i> Service Logs</h5>
+                <div>
+                    <button class="btn btn-info btn-sm" onclick="refreshLogs()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="clearLogs()">
+                        <i class="fas fa-eraser"></i> Clear View
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="downloadLogs()">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="logLines" class="form-label">Number of lines:</label>
+                            <select class="form-select" id="logLines" onchange="refreshLogs()">
+                                <option value="50">50 lines</option>
+                                <option value="100">100 lines</option>
+                                <option value="200">200 lines</option>
+                                <option value="500">500 lines</option>
+                                <option value="1000">1000 lines</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="logFilter" class="form-label">Filter logs:</label>
+                            <input type="text" class="form-control" id="logFilter" 
+                                   placeholder="Search in logs..." onkeyup="filterLogs()">
+                        </div>
+                    </div>
+                </div>
+                
+                {% if status.service_exists %}
+                <div class="log-container">
+                    <pre id="logContent" class="log-output">{{ logs }}</pre>
+                </div>
+                {% else %}
+                <div class="alert alert-warning" role="alert">
+                    <h6><i class="fas fa-exclamation-triangle"></i> Service Not Found</h6>
+                    <p class="mb-0">Blocky service is not installed or configured. Please install Blocky first.</p>
+                    <a href="{{ url_for('install') }}" class="btn btn-primary mt-2">
+                        <i class="fas fa-download"></i> Install Blocky
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if status.service_exists %}
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-bar"></i> Log Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="mb-2">
+                            <i class="fas fa-info-circle fa-2x text-info"></i>
+                            <h6 class="mt-2">Info</h6>
+                            <span id="infoCount" class="badge bg-info">0</span>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="mb-2">
+                            <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                            <h6 class="mt-2">Warnings</h6>
+                            <span id="warningCount" class="badge bg-warning">0</span>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="mb-2">
+                            <i class="fas fa-times-circle fa-2x text-danger"></i>
+                            <h6 class="mt-2">Errors</h6>
+                            <span id="errorCount" class="badge bg-danger">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-tools"></i> Log Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary" onclick="showRecentQueries()">
+                        <i class="fas fa-search"></i> Recent DNS Queries
+                    </button>
+                    <button class="btn btn-outline-warning" onclick="showBlockedQueries()">
+                        <i class="fas fa-ban"></i> Blocked Queries
+                    </button>
+                    <button class="btn btn-outline-info" onclick="showSystemLogs()">
+                        <i class="fas fa-server"></i> System Logs
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-question-circle"></i> Log Analysis Help</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Common Log Patterns:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success"></i> <code>started</code> - Service started successfully</li>
+                            <li><i class="fas fa-ban text-warning"></i> <code>blocked</code> - DNS query was blocked</li>
+                            <li><i class="fas fa-arrow-right text-info"></i> <code>resolved</code> - DNS query was resolved</li>
+                            <li><i class="fas fa-times text-danger"></i> <code>error</code> - Error occurred</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Troubleshooting:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-info-circle text-info"></i> Check for startup errors</li>
+                            <li><i class="fas fa-network-wired text-primary"></i> Verify network configuration</li>
+                            <li><i class="fas fa-cog text-warning"></i> Validate configuration syntax</li>
+                            <li><i class="fas fa-list text-secondary"></i> Monitor blocklist updates</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Log Details Modal -->
+<div class="modal fade" id="logDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Log Entry Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre id="logDetailsContent" class="log-output"></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let originalLogs = '';
+let logRefreshInterval = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    originalLogs = document.getElementById('logContent')?.textContent || '';
+    updateLogStatistics();
+    
+    // Auto-refresh logs every 30 seconds
+    logRefreshInterval = setInterval(refreshLogs, 30000);
+});
+
+function refreshLogs() {
+    const lines = document.getElementById('logLines').value;
+    const logContent = document.getElementById('logContent');
+    
+    if (!logContent) return;
+    
+    // Show loading indicator
+    logContent.innerHTML = '<div class="text-center text-muted">Loading logs...</div>';
+    
+    // Simulate log fetching (in real implementation, this would be an API call)
+    setTimeout(() => {
+        fetch('/api/logs?lines=' + lines)
+            .then(response => response.text())
+            .then(data => {
+                logContent.textContent = data;
+                originalLogs = data;
+                updateLogStatistics();
+                filterLogs(); // Apply current filter
+            })
+            .catch(error => {
+                logContent.innerHTML = '<div class="text-danger">Error loading logs: ' + error + '</div>';
+            });
+    }, 500);
+}
+
+function clearLogs() {
+    const logContent = document.getElementById('logContent');
+    if (logContent) {
+        logContent.textContent = '';
+    }
+    updateLogStatistics();
+}
+
+function filterLogs() {
+    const filter = document.getElementById('logFilter').value.toLowerCase();
+    const logContent = document.getElementById('logContent');
+    
+    if (!logContent || !originalLogs) return;
+    
+    if (!filter) {
+        logContent.textContent = originalLogs;
+        return;
+    }
+    
+    const lines = originalLogs.split('\n');
+    const filteredLines = lines.filter(line => 
+        line.toLowerCase().includes(filter)
+    );
+    
+    logContent.textContent = filteredLines.join('\n');
+    updateLogStatistics();
+}
+
+function updateLogStatistics() {
+    const logContent = document.getElementById('logContent');
+    if (!logContent) return;
+    
+    const text = logContent.textContent;
+    const lines = text.split('\n').filter(line => line.trim());
+    
+    let infoCount = 0;
+    let warningCount = 0;
+    let errorCount = 0;
+    
+    lines.forEach(line => {
+        const lowerLine = line.toLowerCase();
+        if (lowerLine.includes('error') || lowerLine.includes('fail')) {
+            errorCount++;
+        } else if (lowerLine.includes('warn') || lowerLine.includes('blocked')) {
+            warningCount++;
+        } else if (lowerLine.includes('info') || lowerLine.includes('start') || lowerLine.includes('resolved')) {
+            infoCount++;
+        }
+    });
+    
+    document.getElementById('infoCount').textContent = infoCount;
+    document.getElementById('warningCount').textContent = warningCount;
+    document.getElementById('errorCount').textContent = errorCount;
+}
+
+function downloadLogs() {
+    const logContent = document.getElementById('logContent');
+    if (!logContent) return;
+    
+    const logs = logContent.textContent;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `blocky-logs-${timestamp}.txt`;
+    
+    const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(logs);
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", filename);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+}
+
+function showRecentQueries() {
+    // In a real implementation, this would fetch recent DNS queries
+    showAlert('Recent queries analysis will be available in the next version.', 'info');
+}
+
+function showBlockedQueries() {
+    // In a real implementation, this would show blocked queries
+    showAlert('Blocked queries analysis will be available in the next version.', 'info');
+}
+
+function showSystemLogs() {
+    // In a real implementation, this would show system-wide logs
+    showAlert('System logs integration will be available in the next version.', 'info');
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.row'));
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+// Cleanup interval on page unload
+window.addEventListener('beforeunload', function() {
+    if (logRefreshInterval) {
+        clearInterval(logRefreshInterval);
+    }
+});
+</script>
+{% endblock %}

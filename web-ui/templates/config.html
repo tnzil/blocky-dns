@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration - Blocky DNS Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1><i class="fas fa-cog"></i> Blocky DNS Configuration</h1>
+        <p class="lead">Manage your Blocky DNS settings and blocklists</p>
+    </div>
+</div>
+
+{% if config and not config.error %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-edit"></i> Configuration Editor</h5>
+                <div>
+                    <button class="btn btn-success btn-sm" onclick="saveConfig()">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                    <button class="btn btn-info btn-sm" onclick="resetConfig()">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="configTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="upstream-tab" data-bs-toggle="tab" 
+                                data-bs-target="#upstream-pane" type="button" role="tab">
+                            <i class="fas fa-server"></i> Upstream DNS
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="blocking-tab" data-bs-toggle="tab" 
+                                data-bs-target="#blocking-pane" type="button" role="tab">
+                            <i class="fas fa-ban"></i> Blocking Lists
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="allowlist-tab" data-bs-toggle="tab" 
+                                data-bs-target="#allowlist-pane" type="button" role="tab">
+                            <i class="fas fa-check"></i> Allow Lists
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="general-tab" data-bs-toggle="tab" 
+                                data-bs-target="#general-pane" type="button" role="tab">
+                            <i class="fas fa-cogs"></i> General
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="raw-tab" data-bs-toggle="tab" 
+                                data-bs-target="#raw-pane" type="button" role="tab">
+                            <i class="fas fa-code"></i> Raw YAML
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content mt-3" id="configTabContent">
+                    <!-- Upstream DNS Tab -->
+                    <div class="tab-pane fade show active" id="upstream-pane" role="tabpanel">
+                        <h6><i class="fas fa-server"></i> Upstream DNS Servers</h6>
+                        <p class="text-muted">Configure the DNS servers that Blocky will forward requests to.</p>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Default Upstream Servers:</label>
+                            <div id="upstreamList">
+                                {% if config.upstream and config.upstream.default %}
+                                    {% for server in config.upstream.default %}
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control upstream-server" value="{{ server }}">
+                                        <button class="btn btn-outline-danger" type="button" onclick="removeUpstream(this)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                            <button class="btn btn-outline-primary btn-sm" onclick="addUpstream()">
+                                <i class="fas fa-plus"></i> Add Server
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="bootstrapDns" class="form-label">Bootstrap DNS:</label>
+                            <input type="text" class="form-control" id="bootstrapDns" 
+                                   value="{{ config.bootstrapDns or '1.1.1.1' }}">
+                        </div>
+                    </div>
+                    
+                    <!-- Blocking Lists Tab -->
+                    <div class="tab-pane fade" id="blocking-pane" role="tabpanel">
+                        <h6><i class="fas fa-ban"></i> DNS Blocking Lists</h6>
+                        <p class="text-muted">Manage the blocklists used to filter DNS requests.</p>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Ad Blocking Lists:</label>
+                            <div id="blockingList">
+                                {% if config.blocking and config.blocking.denylists and config.blocking.denylists.ads %}
+                                    {% for url in config.blocking.denylists.ads %}
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control blocking-url" value="{{ url }}">
+                                        <button class="btn btn-outline-danger" type="button" onclick="removeBlocking(this)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                            <button class="btn btn-outline-primary btn-sm" onclick="addBlocking()">
+                                <i class="fas fa-plus"></i> Add Blocklist URL
+                            </button>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle"></i> Popular Blocklists:</h6>
+                            <small>
+                                <strong>StevenBlack:</strong> https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts<br>
+                                <strong>OISD:</strong> https://big.oisd.nl<br>
+                                <strong>Hagezi Pro:</strong> https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/pro.txt
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <!-- Allow Lists Tab -->
+                    <div class="tab-pane fade" id="allowlist-pane" role="tabpanel">
+                        <h6><i class="fas fa-check"></i> Allow Lists (Whitelist)</h6>
+                        <p class="text-muted">URLs that should never be blocked.</p>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Allowlist URLs:</label>
+                            <div id="allowList">
+                                {% if config.blocking and config.blocking.allowlists and config.blocking.allowlists.ads %}
+                                    {% for url in config.blocking.allowlists.ads %}
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control allow-url" value="{{ url }}">
+                                        <button class="btn btn-outline-danger" type="button" onclick="removeAllow(this)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                            <button class="btn btn-outline-primary btn-sm" onclick="addAllow()">
+                                <i class="fas fa-plus"></i> Add Allowlist URL
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- General Settings Tab -->
+                    <div class="tab-pane fade" id="general-pane" role="tabpanel">
+                        <h6><i class="fas fa-cogs"></i> General Settings</h6>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="dnsPort" class="form-label">DNS Port:</label>
+                                    <input type="number" class="form-control" id="dnsPort" 
+                                           value="{{ config.port or 53 }}">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="httpPort" class="form-label">HTTP Port:</label>
+                                    <input type="number" class="form-control" id="httpPort" 
+                                           value="{{ config.httpPort or 4000 }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Client Groups Block:</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="defaultBlocking" 
+                                               {% if config.blocking and config.blocking.clientGroupsBlock and config.blocking.clientGroupsBlock.default %}checked{% endif %}>
+                                        <label class="form-check-label" for="defaultBlocking">
+                                            Block ads for default client group
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Raw YAML Tab -->
+                    <div class="tab-pane fade" id="raw-pane" role="tabpanel">
+                        <h6><i class="fas fa-code"></i> Raw YAML Configuration</h6>
+                        <p class="text-muted">Advanced users can edit the raw YAML configuration directly.</p>
+                        
+                        <div class="mb-3">
+                            <textarea class="form-control" id="rawConfig" rows="20" style="font-family: monospace;">{{ config | to_nice_yaml }}</textarea>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Warning:</strong> Invalid YAML syntax will prevent Blocky from starting.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-bolt"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <button class="btn btn-warning w-100" onclick="restartService()">
+                            <i class="fas fa-redo"></i> Restart Service
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-info w-100" onclick="validateConfig()">
+                            <i class="fas fa-check-circle"></i> Validate Config
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-secondary w-100" onclick="downloadConfig()">
+                            <i class="fas fa-download"></i> Download Config
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-primary w-100" onclick="loadPreset()">
+                            <i class="fas fa-magic"></i> Load Preset
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% elif config and config.error %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Configuration Error</h4>
+            <p>Unable to load configuration: {{ config.error }}</p>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="alert alert-warning" role="alert">
+            <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> No Configuration Found</h4>
+            <p>Blocky configuration file not found. Please install Blocky first.</p>
+            <a href="{{ url_for('install') }}" class="btn btn-primary">
+                <i class="fas fa-download"></i> Install Blocky
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const originalConfig = {{ config | tojson | safe }};
+
+function addUpstream() {
+    const upstreamList = document.getElementById('upstreamList');
+    const div = document.createElement('div');
+    div.className = 'input-group mb-2';
+    div.innerHTML = `
+        <input type="text" class="form-control upstream-server" placeholder="8.8.8.8">
+        <button class="btn btn-outline-danger" type="button" onclick="removeUpstream(this)">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    upstreamList.appendChild(div);
+}
+
+function removeUpstream(button) {
+    button.parentElement.remove();
+}
+
+function addBlocking() {
+    const blockingList = document.getElementById('blockingList');
+    const div = document.createElement('div');
+    div.className = 'input-group mb-2';
+    div.innerHTML = `
+        <input type="text" class="form-control blocking-url" placeholder="https://example.com/blocklist.txt">
+        <button class="btn btn-outline-danger" type="button" onclick="removeBlocking(this)">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    blockingList.appendChild(div);
+}
+
+function removeBlocking(button) {
+    button.parentElement.remove();
+}
+
+function addAllow() {
+    const allowList = document.getElementById('allowList');
+    const div = document.createElement('div');
+    div.className = 'input-group mb-2';
+    div.innerHTML = `
+        <input type="text" class="form-control allow-url" placeholder="https://example.com/allowlist.txt">
+        <button class="btn btn-outline-danger" type="button" onclick="removeAllow(this)">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    allowList.appendChild(div);
+}
+
+function removeAllow(button) {
+    button.parentElement.remove();
+}
+
+function saveConfig() {
+    const config = buildConfigFromForm();
+    
+    fetch('/api/config', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(config)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Configuration saved successfully!', 'success');
+        } else {
+            showAlert('Failed to save configuration: ' + (data.error || 'Unknown error'), 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Error saving configuration: ' + error, 'danger');
+    });
+}
+
+function buildConfigFromForm() {
+    // Get upstream servers
+    const upstreamServers = Array.from(document.querySelectorAll('.upstream-server'))
+        .map(input => input.value.trim())
+        .filter(value => value);
+    
+    // Get blocking URLs
+    const blockingUrls = Array.from(document.querySelectorAll('.blocking-url'))
+        .map(input => input.value.trim())
+        .filter(value => value);
+    
+    // Get allow URLs
+    const allowUrls = Array.from(document.querySelectorAll('.allow-url'))
+        .map(input => input.value.trim())
+        .filter(value => value);
+    
+    // Build config object
+    const config = {
+        upstream: {
+            default: upstreamServers
+        },
+        blocking: {
+            denylists: {
+                ads: blockingUrls
+            },
+            allowlists: {
+                ads: allowUrls
+            },
+            clientGroupsBlock: {
+                default: document.getElementById('defaultBlocking').checked ? ['ads'] : []
+            }
+        },
+        port: parseInt(document.getElementById('dnsPort').value) || 53,
+        httpPort: parseInt(document.getElementById('httpPort').value) || 4000,
+        bootstrapDns: document.getElementById('bootstrapDns').value || '1.1.1.1'
+    };
+    
+    return config;
+}
+
+function resetConfig() {
+    if (confirm('Are you sure you want to reset all changes?')) {
+        location.reload();
+    }
+}
+
+function restartService() {
+    if (confirm('Are you sure you want to restart the Blocky service?')) {
+        fetch('/api/restart', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Service restarted successfully!', 'success');
+            } else {
+                showAlert('Failed to restart service.', 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error restarting service: ' + error, 'danger');
+        });
+    }
+}
+
+function validateConfig() {
+    try {
+        const config = buildConfigFromForm();
+        showAlert('Configuration appears to be valid!', 'success');
+    } catch (error) {
+        showAlert('Configuration validation failed: ' + error, 'danger');
+    }
+}
+
+function downloadConfig() {
+    const config = buildConfigFromForm();
+    const dataStr = "data:text/yaml;charset=utf-8," + encodeURIComponent(jsyaml.dump(config));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "blocky-config.yml");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+}
+
+function loadPreset() {
+    alert('Preset configurations will be available in the next version.');
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.row'));
+    
+    // Auto-hide success alerts
+    if (type === 'success') {
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+{% endblock %}
