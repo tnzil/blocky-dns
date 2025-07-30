@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}Installation - Blocky DNS Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1><i class="fas fa-download"></i> Blocky DNS Installation</h1>
+        <p class="lead">Install or update your Blocky DNS installation</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle"></i> Current Status</h5>
+            </div>
+            <div class="card-body">
+                {% if status.installed %}
+                    <div class="alert alert-info" role="alert">
+                        <h6><i class="fas fa-check-circle"></i> Blocky is already installed</h6>
+                        <p class="mb-0">You can update to the latest version or reinstall if needed.</p>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning" role="alert">
+                        <h6><i class="fas fa-exclamation-triangle"></i> Blocky is not installed</h6>
+                        <p class="mb-0">Ready to install Blocky DNS on this system.</p>
+                    </div>
+                {% endif %}
+
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <strong>Installation Directory:</strong> /opt/blocky<br>
+                        <strong>Service User:</strong> blockyusr<br>
+                        <strong>DNS Port:</strong> 53<br>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Web Interface:</strong> Port 4000<br>
+                        <strong>Configuration:</strong> /opt/blocky/config.yml<br>
+                        <strong>Service:</strong> systemd unit<br>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-cogs"></i> Installation Options</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <button class="btn btn-primary btn-block w-100 mb-2" onclick="startInstallation(false)">
+                        <i class="fas fa-download"></i> {% if status.installed %}Update{% else %}Install{% endif %} Blocky
+                    </button>
+                    <small class="text-muted">Interactive installation with options</small>
+                </div>
+                
+                <div class="mb-3">
+                    <button class="btn btn-success btn-block w-100 mb-2" onclick="startInstallation(true)">
+                        <i class="fas fa-magic"></i> Auto-Install
+                    </button>
+                    <small class="text-muted">Automatic installation with defaults</small>
+                </div>
+
+                {% if status.installed %}
+                <div class="mb-3">
+                    <button class="btn btn-warning btn-block w-100 mb-2" onclick="showBackupOptions()">
+                        <i class="fas fa-archive"></i> Backup First
+                    </button>
+                    <small class="text-muted">Create backup before updating</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Installation Information -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info"></i> What Will Be Installed</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-check text-success"></i> Core Components</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-cube text-primary"></i> Latest Blocky binary</li>
+                            <li><i class="fas fa-cog text-primary"></i> Default configuration</li>
+                            <li><i class="fas fa-user text-primary"></i> Dedicated system user</li>
+                            <li><i class="fas fa-play text-primary"></i> Systemd service</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-shield-alt text-success"></i> DNS Blocking Lists</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-ban text-danger"></i> StevenBlack's hosts</li>
+                            <li><i class="fas fa-ban text-danger"></i> OISD blocklists</li>
+                            <li><i class="fas fa-ban text-danger"></i> Hagezi's lists</li>
+                            <li><i class="fas fa-ban text-danger"></i> AdGuard filters</li>
+                            <li><i class="fas fa-check text-success"></i> Whitelists included</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Installation Progress -->
+<div class="row" id="installationProgress" style="display: none;">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-spinner fa-spin"></i> Installation Progress</h5>
+            </div>
+            <div class="card-body">
+                <div class="progress mb-3">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" style="width: 0%" id="progressBar">0%</div>
+                </div>
+                <div id="installationOutput">
+                    <p><i class="fas fa-info-circle text-info"></i> Starting installation...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Requirements Check -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-list-check"></i> System Requirements</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Supported Operating Systems:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fab fa-centos text-danger"></i> CentOS 7/8</li>
+                            <li><i class="fab fa-fedora text-primary"></i> Fedora 35+</li>
+                            <li><i class="fab fa-debian text-danger"></i> Debian 11+</li>
+                            <li><i class="fab fa-ubuntu text-orange"></i> Ubuntu 20+</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Prerequisites:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-user-shield text-warning"></i> Root access required</li>
+                            <li><i class="fas fa-network-wired text-info"></i> Internet connection</li>
+                            <li><i class="fas fa-hdd text-success"></i> ~50MB disk space</li>
+                            <li><i class="fas fa-memory text-primary"></i> 128MB RAM minimum</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="alert alert-info mt-3" role="alert">
+                    <strong><i class="fas fa-info-circle"></i> Note:</strong> 
+                    The installation will automatically handle package dependencies, 
+                    user creation, and service configuration.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Installation Modal -->
+<div class="modal fade" id="installationModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-download"></i> Installing Blocky DNS
+                </h5>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" id="modalProgressBar" style="width: 0%">
+                            <span id="modalProgressText">0%</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="modalOutput" style="max-height: 300px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;">
+                    <div>Starting installation...</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="modalCloseBtn" disabled>Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let installationInProgress = false;
+
+function startInstallation(autoInstall) {
+    if (installationInProgress) {
+        return;
+    }
+    
+    installationInProgress = true;
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('installationModal'));
+    modal.show();
+    
+    // Reset progress
+    updateProgress(0, 'Starting installation...');
+    document.getElementById('modalCloseBtn').disabled = true;
+    
+    // Start installation
+    fetch('/api/install', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ auto: autoInstall })
+    })
+    .then(response => response.json())
+    .then(data => {
+        installationInProgress = false;
+        document.getElementById('modalCloseBtn').disabled = false;
+        
+        if (data.success) {
+            updateProgress(100, 'Installation completed successfully!');
+            appendOutput('<div class="text-success"><strong>✓ Installation completed successfully!</strong></div>');
+            setTimeout(() => {
+                location.href = '/';
+            }, 3000);
+        } else {
+            updateProgress(100, 'Installation failed');
+            appendOutput('<div class="text-danger"><strong>✗ Installation failed:</strong></div>');
+            if (data.output) {
+                appendOutput('<div class="text-muted">' + escapeHtml(data.output) + '</div>');
+            }
+            if (data.error) {
+                appendOutput('<div class="text-danger">' + escapeHtml(data.error) + '</div>');
+            }
+        }
+    })
+    .catch(error => {
+        installationInProgress = false;
+        document.getElementById('modalCloseBtn').disabled = false;
+        updateProgress(100, 'Installation error');
+        appendOutput('<div class="text-danger"><strong>✗ Error:</strong> ' + escapeHtml(error.toString()) + '</div>');
+    });
+    
+    // Simulate progress updates
+    simulateProgress();
+}
+
+function simulateProgress() {
+    const steps = [
+        { progress: 10, message: 'Checking system requirements...' },
+        { progress: 20, message: 'Downloading latest Blocky release...' },
+        { progress: 40, message: 'Extracting files...' },
+        { progress: 60, message: 'Creating system user...' },
+        { progress: 80, message: 'Configuring service...' },
+        { progress: 90, message: 'Starting Blocky service...' }
+    ];
+    
+    let currentStep = 0;
+    const interval = setInterval(() => {
+        if (currentStep < steps.length && installationInProgress) {
+            const step = steps[currentStep];
+            updateProgress(step.progress, step.message);
+            appendOutput('<div><i class="fas fa-arrow-right text-primary"></i> ' + step.message + '</div>');
+            currentStep++;
+        } else {
+            clearInterval(interval);
+        }
+    }, 2000);
+}
+
+function updateProgress(percent, message) {
+    const progressBar = document.getElementById('modalProgressBar');
+    const progressText = document.getElementById('modalProgressText');
+    
+    progressBar.style.width = percent + '%';
+    progressText.textContent = percent + '%';
+    
+    if (message) {
+        appendOutput('<div class="text-info">' + message + '</div>');
+    }
+}
+
+function appendOutput(html) {
+    const output = document.getElementById('modalOutput');
+    output.innerHTML += html;
+    output.scrollTop = output.scrollHeight;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showBackupOptions() {
+    alert('Backup functionality will be available in the next version. The installer automatically creates backups during updates.');
+}
+</script>
+{% endblock %}

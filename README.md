@@ -12,6 +12,26 @@ Official repository:
 * https://github.com/0xERR0R/blocky.git
 * Official [installation](https://0xerr0r.github.io/blocky/installation/) manual
 
+## 🆕 Web UI Management Interface
+
+A modern web-based management interface is now available for easier Blocky installation and configuration!
+
+### Features:
+- **📊 Dashboard**: Real-time status monitoring and system overview
+- **🚀 Installation Wizard**: Step-by-step installation with progress tracking
+- **⚙️ Configuration Editor**: Visual config management with blocklist/allowlist editing
+- **📋 Log Viewer**: Real-time log monitoring with filtering and statistics
+- **🔧 Service Control**: Start, stop, restart services from the web interface
+
+### Quick Start:
+```bash
+cd web-ui
+./start-ui.sh
+```
+Then open http://localhost:8080 in your browser.
+
+See [web-ui/README.md](web-ui/README.md) for detailed documentation.
+
 ## Installer features
 
 `installer.sh` it is a bash script for install [Blocky](https://github.com/0xERR0R/blocky.git) to:
